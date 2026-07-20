@@ -43,17 +43,57 @@ impl IdentificationSearchParams {
     pub fn to_hashmap(&self) -> HashMap<String, String> {
         let mut map = HashMap::new();
 
-        if let Some(ref ids) = self.observation_id { map.insert("observation_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(ref ids) = self.taxon_id { map.insert("taxon_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(ref ids) = self.user_id { map.insert("user_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(current) = self.current { map.insert("current".to_string(), current.to_string()); }
-        if let Some(ref categories) = self.category { map.insert("category".to_string(), categories.join(",")); }
-        if let Some(own) = self.own_observation { map.insert("own_observation".to_string(), own.to_string()); }
-        if let Some(change) = self.is_change { map.insert("is_change".to_string(), change.to_string()); }
-        if let Some(ref order) = self.order { map.insert("order".to_string(), order.clone()); }
-        if let Some(ref order_by) = self.order_by { map.insert("order_by".to_string(), order_by.clone()); }
-        if let Some(page) = self.page { map.insert("page".to_string(), page.to_string()); }
-        if let Some(per_page) = self.per_page { map.insert("per_page".to_string(), per_page.to_string()); }
+        if let Some(ref ids) = self.observation_id {
+            map.insert(
+                "observation_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(ref ids) = self.taxon_id {
+            map.insert(
+                "taxon_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(ref ids) = self.user_id {
+            map.insert(
+                "user_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(current) = self.current {
+            map.insert("current".to_string(), current.to_string());
+        }
+        if let Some(ref categories) = self.category {
+            map.insert("category".to_string(), categories.join(","));
+        }
+        if let Some(own) = self.own_observation {
+            map.insert("own_observation".to_string(), own.to_string());
+        }
+        if let Some(change) = self.is_change {
+            map.insert("is_change".to_string(), change.to_string());
+        }
+        if let Some(ref order) = self.order {
+            map.insert("order".to_string(), order.clone());
+        }
+        if let Some(ref order_by) = self.order_by {
+            map.insert("order_by".to_string(), order_by.clone());
+        }
+        if let Some(page) = self.page {
+            map.insert("page".to_string(), page.to_string());
+        }
+        if let Some(per_page) = self.per_page {
+            map.insert("per_page".to_string(), per_page.to_string());
+        }
 
         for (k, v) in &self.extra_params {
             map.insert(k.clone(), v.clone());

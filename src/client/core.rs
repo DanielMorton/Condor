@@ -7,15 +7,14 @@ use std::time::Duration;
 
 use crate::api::endpoints::Endpoints;
 use crate::api::requests::RequestHandler;
-use crate::client::rate_limiter::RateLimiter;
 use crate::client::pagination::{fetch_all_pages, fetch_page};
+use crate::client::rate_limiter::RateLimiter;
 use crate::error::{ClientError, Result};
 use crate::models::{
     ControlledTerm, Identification, IdentificationSearchParams, Observation,
     ObservationHistogramStats, ObservationIdentifierStats, ObservationObserverStats,
-    ObservationSearchParams, ObservationSpeciesStats, Place, PlaceSearchParams,
-    Project, ProjectSearchParams, SearchParams, SearchResult, Taxon, TaxonSuggestion,
-    User,
+    ObservationSearchParams, ObservationSpeciesStats, Place, PlaceSearchParams, Project,
+    ProjectSearchParams, SearchParams, SearchResult, Taxon, TaxonSuggestion, User,
 };
 
 #[derive(Debug, Clone)]
@@ -178,18 +177,24 @@ impl INaturalistClient {
                 let mut q = query.clone();
                 let ep = endpoint.clone();
                 async move {
-                    fetch_page::<Observation>(&handler, &ep, &mut q, page, per_page, &rate_limiter).await
+                    fetch_page::<Observation>(&handler, &ep, &mut q, page, per_page, &rate_limiter)
+                        .await
                 }
             },
             per_page,
         )
-            .await
+        .await
     }
 
     /// Get a single observation by ID
     pub async fn get_observation(&self, id: u64) -> Result<Observation> {
         self.request_handler
-            .get_by_id::<Observation>(Endpoints::OBSERVATIONS, id, &HashMap::new(), &self.rate_limiter)
+            .get_by_id::<Observation>(
+                Endpoints::OBSERVATIONS,
+                id,
+                &HashMap::new(),
+                &self.rate_limiter,
+            )
             .await
     }
 
@@ -241,18 +246,31 @@ impl INaturalistClient {
                 let mut q = query.clone();
                 let ep = endpoint.clone();
                 async move {
-                    fetch_page::<Identification>(&handler, &ep, &mut q, page, per_page, &rate_limiter).await
+                    fetch_page::<Identification>(
+                        &handler,
+                        &ep,
+                        &mut q,
+                        page,
+                        per_page,
+                        &rate_limiter,
+                    )
+                    .await
                 }
             },
             per_page,
         )
-            .await
+        .await
     }
 
     /// Get a single identification by ID
     pub async fn get_identification(&self, id: u64) -> Result<Identification> {
         self.request_handler
-            .get_by_id::<Identification>(Endpoints::IDENTIFICATIONS, id, &HashMap::new(), &self.rate_limiter)
+            .get_by_id::<Identification>(
+                Endpoints::IDENTIFICATIONS,
+                id,
+                &HashMap::new(),
+                &self.rate_limiter,
+            )
             .await
     }
 
@@ -276,7 +294,10 @@ impl INaturalistClient {
         if let Some(ids) = taxon_id {
             params.insert(
                 "taxon_id".to_string(),
-                ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(","),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
             );
         }
         if let Some(ranks) = rank {
@@ -297,7 +318,7 @@ impl INaturalistClient {
             },
             per_page,
         )
-            .await
+        .await
     }
 
     /// Get a single taxon by ID
@@ -308,11 +329,7 @@ impl INaturalistClient {
     }
 
     /// Autocomplete taxon names
-    pub async fn taxa_autocomplete(
-        &self,
-        q: &str,
-        per_page: Option<usize>,
-    ) -> Result<Vec<Taxon>> {
+    pub async fn taxa_autocomplete(&self, q: &str, per_page: Option<usize>) -> Result<Vec<Taxon>> {
         let endpoint = Endpoints::url(Endpoints::TAXA_AUTOCOMPLETE);
         let mut params = HashMap::new();
         params.insert("q".to_string(), q.to_string());
@@ -358,10 +375,7 @@ impl INaturalistClient {
     // ============================================================
 
     /// Search places. Auto-paginates.
-    pub async fn search_places(
-        &self,
-        params: &PlaceSearchParams,
-    ) -> Result<Vec<Place>> {
+    pub async fn search_places(&self, params: &PlaceSearchParams) -> Result<Vec<Place>> {
         let endpoint = Endpoints::url(Endpoints::PLACES);
         let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
@@ -378,7 +392,7 @@ impl INaturalistClient {
             },
             per_page,
         )
-            .await
+        .await
     }
 
     /// Get a single place by ID
@@ -439,10 +453,7 @@ impl INaturalistClient {
     // ============================================================
 
     /// Search projects. Auto-paginates.
-    pub async fn search_projects(
-        &self,
-        params: &ProjectSearchParams,
-    ) -> Result<Vec<Project>> {
+    pub async fn search_projects(&self, params: &ProjectSearchParams) -> Result<Vec<Project>> {
         let endpoint = Endpoints::url(Endpoints::PROJECTS);
         let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
@@ -454,12 +465,13 @@ impl INaturalistClient {
                 let mut q = query.clone();
                 let ep = endpoint.clone();
                 async move {
-                    fetch_page::<Project>(&handler, &ep, &mut q, page, per_page, &rate_limiter).await
+                    fetch_page::<Project>(&handler, &ep, &mut q, page, per_page, &rate_limiter)
+                        .await
                 }
             },
             per_page,
         )
-            .await
+        .await
     }
 
     /// Get a single project by ID
@@ -519,11 +531,7 @@ impl INaturalistClient {
     }
 
     /// Autocomplete user names
-    pub async fn users_autocomplete(
-        &self,
-        q: &str,
-        per_page: Option<usize>,
-    ) -> Result<Vec<User>> {
+    pub async fn users_autocomplete(&self, q: &str, per_page: Option<usize>) -> Result<Vec<User>> {
         let endpoint = Endpoints::url(Endpoints::USERS_AUTOCOMPLETE);
         let mut params = HashMap::new();
         params.insert("q".to_string(), q.to_string());
@@ -555,12 +563,13 @@ impl INaturalistClient {
                 let mut q = query.clone();
                 let ep = endpoint.clone();
                 async move {
-                    fetch_page::<SearchResult>(&handler, &ep, &mut q, page, per_page, &rate_limiter).await
+                    fetch_page::<SearchResult>(&handler, &ep, &mut q, page, per_page, &rate_limiter)
+                        .await
                 }
             },
             per_page,
         )
-            .await
+        .await
     }
 
     // ============================================================
@@ -568,10 +577,7 @@ impl INaturalistClient {
     // ============================================================
 
     /// Get controlled terms (optionally filtered by taxon)
-    pub async fn get_controlled_terms(
-        &self,
-        taxon_id: Option<u32>,
-    ) -> Result<Vec<ControlledTerm>> {
+    pub async fn get_controlled_terms(&self, taxon_id: Option<u32>) -> Result<Vec<ControlledTerm>> {
         let endpoint = Endpoints::url(Endpoints::CONTROLLED_TERMS);
         let mut params = HashMap::new();
         if let Some(id) = taxon_id {

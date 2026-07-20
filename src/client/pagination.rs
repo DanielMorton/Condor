@@ -4,10 +4,7 @@ use crate::error::Result;
 use std::collections::HashMap;
 
 /// Fetch all pages of a paginated endpoint
-pub async fn fetch_all_pages<T, F, Fut>(
-    mut fetch_page: F,
-    per_page: usize,
-) -> Result<Vec<T>>
+pub async fn fetch_all_pages<T, F, Fut>(mut fetch_page: F, per_page: usize) -> Result<Vec<T>>
 where
     F: FnMut(usize) -> Fut,
     Fut: std::future::Future<Output = Result<ApiResponse<T>>>,
@@ -23,7 +20,11 @@ where
         all_results.extend(response.results);
 
         if all_results.len() >= total || batch_size < per_page || batch_size == 0 {
-            log::info!("Fetched {} total results across {} pages", all_results.len(), page);
+            log::info!(
+                "Fetched {} total results across {} pages",
+                all_results.len(),
+                page
+            );
             break;
         }
 

@@ -25,10 +25,18 @@ impl PlaceSearchParams {
     pub fn to_hashmap(&self) -> HashMap<String, String> {
         let mut map = HashMap::new();
 
-        if let Some(ref q) = self.q { map.insert("q".to_string(), q.clone()); }
-        if let Some(ref types) = self.place_type { map.insert("place_type".to_string(), types.join(",")); }
-        if let Some(id) = self.ancestor_place_id { map.insert("ancestor_place_id".to_string(), id.to_string()); }
-        if let Some(n) = self.per_page { map.insert("per_page".to_string(), n.to_string()); }
+        if let Some(ref q) = self.q {
+            map.insert("q".to_string(), q.clone());
+        }
+        if let Some(ref types) = self.place_type {
+            map.insert("place_type".to_string(), types.join(","));
+        }
+        if let Some(id) = self.ancestor_place_id {
+            map.insert("ancestor_place_id".to_string(), id.to_string());
+        }
+        if let Some(n) = self.per_page {
+            map.insert("per_page".to_string(), n.to_string());
+        }
 
         for (k, v) in &self.extra_params {
             map.insert(k.clone(), v.clone());

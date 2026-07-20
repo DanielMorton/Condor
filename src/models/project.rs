@@ -39,15 +39,51 @@ impl ProjectSearchParams {
     pub fn to_hashmap(&self) -> HashMap<String, String> {
         let mut map = HashMap::new();
 
-        if let Some(ref q) = self.q { map.insert("q".to_string(), q.clone()); }
-        if let Some(ref ids) = self.place_id { map.insert("place_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(ref ids) = self.taxon_id { map.insert("taxon_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(ref ids) = self.user_id { map.insert("user_id".to_string(), ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",")); }
-        if let Some(ref t) = self.project_type { map.insert("type".to_string(), t.clone()); }
-        if let Some(id) = self.member_id { map.insert("member_id".to_string(), id.to_string()); }
-        if let Some(details) = self.rule_details { map.insert("rule_details".to_string(), details.to_string()); }
-        if let Some(page) = self.page { map.insert("page".to_string(), page.to_string()); }
-        if let Some(per_page) = self.per_page { map.insert("per_page".to_string(), per_page.to_string()); }
+        if let Some(ref q) = self.q {
+            map.insert("q".to_string(), q.clone());
+        }
+        if let Some(ref ids) = self.place_id {
+            map.insert(
+                "place_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(ref ids) = self.taxon_id {
+            map.insert(
+                "taxon_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(ref ids) = self.user_id {
+            map.insert(
+                "user_id".to_string(),
+                ids.iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
+        }
+        if let Some(ref t) = self.project_type {
+            map.insert("type".to_string(), t.clone());
+        }
+        if let Some(id) = self.member_id {
+            map.insert("member_id".to_string(), id.to_string());
+        }
+        if let Some(details) = self.rule_details {
+            map.insert("rule_details".to_string(), details.to_string());
+        }
+        if let Some(page) = self.page {
+            map.insert("page".to_string(), page.to_string());
+        }
+        if let Some(per_page) = self.per_page {
+            map.insert("per_page".to_string(), per_page.to_string());
+        }
 
         for (k, v) in &self.extra_params {
             map.insert(k.clone(), v.clone());

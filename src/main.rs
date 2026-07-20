@@ -1,7 +1,7 @@
 use clap::Parser;
-use log::info;
 use condor::cli::{Cli, execute_command};
 use condor::{ClientError, INaturalistClient};
+use log::info;
 
 #[tokio::main]
 async fn main() -> Result<(), ClientError> {

@@ -68,7 +68,9 @@ pub fn extract_u32_field(obj: &Value, field_name: &str) -> Result<u32, ClientErr
 
 /// Helper function to extract optional string from JSON object
 pub fn extract_string_field(obj: &Value, field_name: &str) -> Option<String> {
-    obj.get(field_name).and_then(|v| v.as_str()).map(|s| s.to_string())
+    obj.get(field_name)
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 /// Helper function to extract optional f64 from JSON object

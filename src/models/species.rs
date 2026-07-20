@@ -42,7 +42,7 @@ impl ObservationSpeciesStats {
                 .as_array()
                 .map(|arr| {
                     arr.iter()
-                        .map(|v| json_value_to_u32(v))
+                        .map(json_value_to_u32)
                         .collect::<Result<Vec<u32>>>()
                 })
                 .unwrap_or_else(|| Ok(Vec::new()))?;

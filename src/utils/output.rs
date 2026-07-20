@@ -1,5 +1,5 @@
-use serde::Serialize;
 use csv::Writer;
+use serde::Serialize;
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -34,10 +34,7 @@ pub fn write_output<T: Serialize>(
     Ok(())
 }
 
-fn write_csv<T: Serialize>(
-    items: &[T],
-    path: Option<&Path>,
-) -> Result<()> {
+fn write_csv<T: Serialize>(items: &[T], path: Option<&Path>) -> Result<()> {
     let writer: Box<dyn Write> = match path {
         Some(p) => Box::new(std::fs::File::create(p)?),
         None => Box::new(io::stdout()),
@@ -51,11 +48,7 @@ fn write_csv<T: Serialize>(
     Ok(())
 }
 
-fn write_json<T: Serialize>(
-    items: &[T],
-    path: Option<&Path>,
-    pretty: bool,
-) -> Result<()> {
+fn write_json<T: Serialize>(items: &[T], path: Option<&Path>, pretty: bool) -> Result<()> {
     let output = if pretty {
         serde_json::to_string_pretty(items)?
     } else {

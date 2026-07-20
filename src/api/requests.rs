@@ -31,10 +31,7 @@ impl RequestHandler {
 
     /// Build query string from HashMap
     fn build_query_string(params: &HashMap<String, String>) -> String {
-        let pairs: Vec<String> = params
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
-            .collect();
+        let pairs: Vec<String> = params.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
         pairs.join("&")
     }
 
@@ -49,12 +46,7 @@ impl RequestHandler {
             format!("{}?{}", endpoint, Self::build_query_string(params))
         };
 
-        let response = self
-            .client
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await?;
+        let response = self.client.get(&url).headers(headers).send().await?;
 
         if response.status().is_success() {
             let json: Value = response.json().await?;
@@ -62,7 +54,10 @@ impl RequestHandler {
         } else if response.status() == 429 {
             Err(ClientError::RateLimit)
         } else if response.status() == 404 {
-            Err(ClientError::NotFound(format!("Endpoint returned 404: {}", endpoint)))
+            Err(ClientError::NotFound(format!(
+                "Endpoint returned 404: {}",
+                endpoint
+            )))
         } else {
             Err(ClientError::InvalidResponse(format!(
                 "HTTP error: {}",
@@ -111,10 +106,12 @@ impl RequestHandler {
         params: &HashMap<String, String>,
         rate_limiter: &RateLimiter,
     ) -> Result<ApiResponse<T>> {
-        let json = self.get_data_with_retry(endpoint, params, rate_limiter, 5).await?;
+        let json = self
+            .get_data_with_retry(endpoint, params, rate_limiter, 5)
+            .await?;
 
-        let response: ApiResponse<T> = serde_json::from_value(json)
-            .map_err(|e| ClientError::Json(e))?;
+        let response: ApiResponse<T> =
+            serde_json::from_value(json).map_err(ClientError::Json)?;
 
         Ok(response)
     }
@@ -129,19 +126,18 @@ impl RequestHandler {
     ) -> Result<T> {
         let url = Endpoints::with_id(endpoint, id);
         let full_url = Endpoints::url(&url);
-        let json = self.get_data_with_retry(&full_url, params, rate_limiter, 5).await?;
+        let json = self
+            .get_data_with_retry(&full_url, params, rate_limiter, 5)
+            .await?;
 
         // iNaturalist returns { "total_results": 1, "results": [obj] } for single gets
         // OR { "id": ..., ... } directly — handle both
-        if let Some(results) = json.get("results").and_then(|r| r.as_array()) {
-            if let Some(first) = results.first() {
-                return serde_json::from_value(first.clone())
-                    .map_err(|e| ClientError::Json(e));
+        if let Some(results) = json.get("results").and_then(|r| r.as_array())
+            && let Some(first) = results.first() {
+                return serde_json::from_value(first.clone()).map_err(ClientError::Json);
             }
-        }
 
-        serde_json::from_value(json)
-            .map_err(|e| ClientError::Json(e))
+        serde_json::from_value(json).map_err( ClientError::Json)
     }
 
     pub async fn get_stats(

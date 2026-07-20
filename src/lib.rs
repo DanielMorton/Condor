@@ -14,12 +14,10 @@ pub mod utils;
 pub use client::INaturalistClient;
 pub use error::{ClientError, Result};
 pub use models::{
-    ObservationHistogramStats, ObservationObserverStats, ObservationSpeciesStats,
-    ObservationIdentifierStats, Observation, ObservationSearchParams,
-    Identification, IdentificationSearchParams,
-    Taxon, TaxonSuggestion, Place, PlaceSearchParams,
-    Project, ProjectSearchParams, User, SearchResult, SearchParams,
-    ControlledTerm,
+    ControlledTerm, Identification, IdentificationSearchParams, Observation,
+    ObservationHistogramStats, ObservationIdentifierStats, ObservationObserverStats,
+    ObservationSearchParams, ObservationSpeciesStats, Place, PlaceSearchParams, Project,
+    ProjectSearchParams, SearchParams, SearchResult, Taxon, TaxonSuggestion, User,
 };
 
 // Re-export commonly used types

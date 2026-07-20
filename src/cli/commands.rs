@@ -1,14 +1,14 @@
+use crate::cli::args::get_locations;
 use crate::cli::args::{
-    Commands, StatsCommands, ObservationCommands, IdentificationCommands,
-    TaxonCommands, PlaceCommands, ProjectCommands, UserCommands,
+    Commands, IdentificationCommands, ObservationCommands, PlaceCommands, ProjectCommands,
+    StatsCommands, TaxonCommands, UserCommands,
 };
-use crate::cli::args::{get_locations};
 use crate::client::INaturalistClient;
 use crate::error::ClientError;
 use crate::models::{
-    execute_identifier_stats, execute_location_stats, execute_observer_stats, execute_species_stats,
-    ObservationSearchParams, IdentificationSearchParams, PlaceSearchParams,
-    ProjectSearchParams, SearchParams,
+    IdentificationSearchParams, ObservationSearchParams, PlaceSearchParams, ProjectSearchParams,
+    SearchParams, execute_identifier_stats, execute_location_stats, execute_observer_stats,
+    execute_species_stats,
 };
 use crate::utils::output::write_output;
 use std::path::Path;
@@ -21,14 +21,20 @@ pub async fn execute_command(
 ) -> Result<(), ClientError> {
     match command {
         Commands::Stats(cmd) => execute_stats_command(client, cmd).await,
-        Commands::Observations(cmd) => execute_observation_command(client, cmd, format, output).await,
-        Commands::Identifications(cmd) => execute_identification_command(client, cmd, format, output).await,
+        Commands::Observations(cmd) => {
+            execute_observation_command(client, cmd, format, output).await
+        }
+        Commands::Identifications(cmd) => {
+            execute_identification_command(client, cmd, format, output).await
+        }
         Commands::Taxa(cmd) => execute_taxon_command(client, cmd, format, output).await,
         Commands::Places(cmd) => execute_place_command(client, cmd, format, output).await,
         Commands::Projects(cmd) => execute_project_command(client, cmd, format, output).await,
         Commands::Users(cmd) => execute_user_command(client, cmd, format, output).await,
         Commands::Search(cmd) => execute_search_command(client, cmd, format, output).await,
-        Commands::ControlledTerms(cmd) => execute_controlled_terms_command(client, cmd, format, output).await,
+        Commands::ControlledTerms(cmd) => {
+            execute_controlled_terms_command(client, cmd, format, output).await
+        }
     }
 }
 
@@ -39,19 +45,47 @@ async fn execute_stats_command(
     match command {
         StatsCommands::LocationStats(cmd) => {
             let resolved_locations = get_locations(&cmd.locations, &cmd.csv_file, &cmd.csv_column)?;
-            execute_location_stats(client, resolved_locations, cmd.max_workers, cmd.params, cmd.output).await
+            execute_location_stats(
+                client,
+                resolved_locations,
+                cmd.max_workers,
+                cmd.params,
+                cmd.output,
+            )
+            .await
         }
         StatsCommands::ObserverStats(cmd) => {
             let resolved_locations = get_locations(&cmd.locations, &cmd.csv_file, &cmd.csv_column)?;
-            execute_observer_stats(client, resolved_locations, cmd.max_workers, cmd.params, cmd.output).await
+            execute_observer_stats(
+                client,
+                resolved_locations,
+                cmd.max_workers,
+                cmd.params,
+                cmd.output,
+            )
+            .await
         }
         StatsCommands::IdentifierStats(cmd) => {
             let resolved_locations = get_locations(&cmd.locations, &cmd.csv_file, &cmd.csv_column)?;
-            execute_identifier_stats(client, resolved_locations, cmd.max_workers, cmd.params, cmd.output).await
+            execute_identifier_stats(
+                client,
+                resolved_locations,
+                cmd.max_workers,
+                cmd.params,
+                cmd.output,
+            )
+            .await
         }
         StatsCommands::SpeciesStats(cmd) => {
             let resolved_locations = get_locations(&cmd.locations, &cmd.csv_file, &cmd.csv_column)?;
-            execute_species_stats(client, resolved_locations, cmd.max_workers, cmd.params, cmd.output).await
+            execute_species_stats(
+                client,
+                resolved_locations,
+                cmd.max_workers,
+                cmd.params,
+                cmd.output,
+            )
+            .await
         }
     }
 }
@@ -128,7 +162,14 @@ async fn execute_taxon_command(
 ) -> Result<(), ClientError> {
     match command {
         TaxonCommands::Search(args) => {
-            let results = client.search_taxa(args.q.as_deref(), args.taxon_id, args.rank, Some(args.per_page)).await?;
+            let results = client
+                .search_taxa(
+                    args.q.as_deref(),
+                    args.taxon_id,
+                    args.rank,
+                    Some(args.per_page),
+                )
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
@@ -138,12 +179,16 @@ async fn execute_taxon_command(
             Ok(())
         }
         TaxonCommands::Autocomplete(args) => {
-            let results = client.taxa_autocomplete(&args.query, Some(args.per_page)).await?;
+            let results = client
+                .taxa_autocomplete(&args.query, Some(args.per_page))
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
         TaxonCommands::Suggest(args) => {
-            let results = client.suggest_taxa(args.image_url.as_deref(), args.lat, args.lng).await?;
+            let results = client
+                .suggest_taxa(args.image_url.as_deref(), args.lat, args.lng)
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
@@ -175,12 +220,22 @@ async fn execute_place_command(
             Ok(())
         }
         PlaceCommands::Nearby(args) => {
-            let results = client.places_nearby(args.nelat, args.nelng, args.swlat, args.swlng, args.name.as_deref()).await?;
+            let results = client
+                .places_nearby(
+                    args.nelat,
+                    args.nelng,
+                    args.swlat,
+                    args.swlng,
+                    args.name.as_deref(),
+                )
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
         PlaceCommands::Autocomplete(args) => {
-            let results = client.places_autocomplete(&args.query, Some(args.per_page)).await?;
+            let results = client
+                .places_autocomplete(&args.query, Some(args.per_page))
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
@@ -213,7 +268,9 @@ async fn execute_project_command(
             Ok(())
         }
         ProjectCommands::Members(args) => {
-            let results = client.get_project_members(args.id, None, Some(args.per_page)).await?;
+            let results = client
+                .get_project_members(args.id, None, Some(args.per_page))
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }
@@ -238,7 +295,9 @@ async fn execute_user_command(
             Ok(())
         }
         UserCommands::Autocomplete(args) => {
-            let results = client.users_autocomplete(&args.query, Some(args.per_page)).await?;
+            let results = client
+                .users_autocomplete(&args.query, Some(args.per_page))
+                .await?;
             write_output(&results, format.into(), output)?;
             Ok(())
         }

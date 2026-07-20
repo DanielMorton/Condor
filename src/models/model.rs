@@ -49,7 +49,6 @@ where
                 let client = client.clone();
                 let progress_bar = progress_bar.clone();
                 let completed_count = Arc::clone(&completed_count);
-                let start_time = start_time;
 
                 move |location| {
                     let stats_fn = Arc::clone(&stats_fn);
@@ -92,7 +91,7 @@ where
         )
         .await
         .into_iter()
-        .map(|result| {
+        .inspect(|_| {
             // Finish progress bar when all tasks complete
             if progress_bar.position() == total_locations as u64 {
                 progress_bar.finish_with_message(format!(
@@ -101,7 +100,6 @@ where
                     format_duration(start_time.elapsed())
                 ));
             }
-            result
         })
         .collect()
 }

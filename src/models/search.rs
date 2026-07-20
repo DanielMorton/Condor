@@ -38,9 +38,15 @@ impl SearchParams {
         let mut map = HashMap::new();
 
         map.insert("q".to_string(), self.q.clone());
-        if let Some(ref sources) = self.sources { map.insert("sources".to_string(), sources.join(",")); }
-        if let Some(n) = self.per_page { map.insert("per_page".to_string(), n.to_string()); }
-        if let Some(page) = self.page { map.insert("page".to_string(), page.to_string()); }
+        if let Some(ref sources) = self.sources {
+            map.insert("sources".to_string(), sources.join(","));
+        }
+        if let Some(n) = self.per_page {
+            map.insert("per_page".to_string(), n.to_string());
+        }
+        if let Some(page) = self.page {
+            map.insert("page".to_string(), page.to_string());
+        }
 
         for (k, v) in &self.extra_params {
             map.insert(k.clone(), v.clone());
