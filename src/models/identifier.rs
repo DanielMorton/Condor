@@ -69,10 +69,10 @@ pub async fn handle_identifier_processing(
             client.get_identifier_stats(location, params).await
         },
     )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
 }
 
 /// Execute identifier statistics command

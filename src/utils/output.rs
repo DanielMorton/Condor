@@ -38,7 +38,7 @@ fn write_csv<T: Serialize>(
     items: &[T],
     path: Option<&Path>,
 ) -> Result<()> {
-    let mut writer: Box<dyn Write> = match path {
+    let writer: Box<dyn Write> = match path {
         Some(p) => Box::new(std::fs::File::create(p)?),
         None => Box::new(io::stdout()),
     };

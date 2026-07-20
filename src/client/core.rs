@@ -168,7 +168,7 @@ impl INaturalistClient {
         params: &ObservationSearchParams,
     ) -> Result<Vec<Observation>> {
         let endpoint = Endpoints::url(Endpoints::OBSERVATIONS);
-        let mut query = params.to_hashmap();
+        let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
 
         fetch_all_pages(
@@ -231,7 +231,7 @@ impl INaturalistClient {
         params: &IdentificationSearchParams,
     ) -> Result<Vec<Identification>> {
         let endpoint = Endpoints::url(Endpoints::IDENTIFICATIONS);
-        let mut query = params.to_hashmap();
+        let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
 
         fetch_all_pages(
@@ -363,7 +363,7 @@ impl INaturalistClient {
         params: &PlaceSearchParams,
     ) -> Result<Vec<Place>> {
         let endpoint = Endpoints::url(Endpoints::PLACES);
-        let mut query = params.to_hashmap();
+        let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
 
         fetch_all_pages(
@@ -444,7 +444,7 @@ impl INaturalistClient {
         params: &ProjectSearchParams,
     ) -> Result<Vec<Project>> {
         let endpoint = Endpoints::url(Endpoints::PROJECTS);
-        let mut query = params.to_hashmap();
+        let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
 
         fetch_all_pages(
@@ -545,7 +545,7 @@ impl INaturalistClient {
     /// Unified search across taxa, places, projects, users
     pub async fn search(&self, params: &SearchParams) -> Result<Vec<SearchResult>> {
         let endpoint = Endpoints::url(Endpoints::SEARCH);
-        let mut query = params.to_hashmap();
+        let query = params.to_hashmap();
         let per_page = params.per_page.unwrap_or(30);
 
         fetch_all_pages(

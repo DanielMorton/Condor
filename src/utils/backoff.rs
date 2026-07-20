@@ -1,3 +1,4 @@
+use rand::RngExt;
 use std::time::Duration;
 
 pub fn exponential_backoff(retry_count: u32, base_delay: f64, max_delay: f64) -> Duration {

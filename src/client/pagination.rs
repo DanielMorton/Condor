@@ -1,5 +1,3 @@
-use log::info;
-
 use crate::api::requests::{ApiResponse, RequestHandler};
 use crate::client::rate_limiter::RateLimiter;
 use crate::error::Result;
@@ -25,7 +23,7 @@ where
         all_results.extend(response.results);
 
         if all_results.len() >= total || batch_size < per_page || batch_size == 0 {
-            info!("Fetched {} total results across {} pages", all_results.len(), page);
+            log::info!("Fetched {} total results across {} pages", all_results.len(), page);
             break;
         }
 

@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "perfoliata")]
+#[command(name = "condor")]
 #[command(about = "A CLI tool for interacting with the iNaturalist API")]
 #[command(version = "1.0")]
 pub struct Cli {
@@ -37,27 +37,27 @@ pub enum Commands {
     Stats(StatsCommands),
 
     /// Observation commands
-    #[command(alias = "obs")]
+    #[command(subcommand, alias = "obs")]
     Observations(ObservationCommands),
 
     /// Identification commands
-    #[command(alias = "id")]
+    #[command(subcommand, alias = "id")]
     Identifications(IdentificationCommands),
 
     /// Taxon commands
-    #[command(alias = "taxa")]
+    #[command(subcommand, alias = "taxa")]
     Taxa(TaxonCommands),
 
     /// Place commands
-    #[command(alias = "places")]
+    #[command(subcommand, alias = "places")]
     Places(PlaceCommands),
 
     /// Project commands
-    #[command(alias = "projects")]
+    #[command(subcommand, alias = "projects")]
     Projects(ProjectCommands),
 
     /// User commands
-    #[command(alias = "users")]
+    #[command(subcommand, alias = "users")]
     Users(UserCommands),
 
     /// Unified search

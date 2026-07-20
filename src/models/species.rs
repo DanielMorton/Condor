@@ -77,10 +77,10 @@ pub async fn handle_species_processing(
             client.get_species_stats(Some(location), params).await
         },
     )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
 }
 
 /// Execute species statistics command

@@ -67,10 +67,10 @@ pub async fn handle_observer_processing(
         max_workers,
         |client, location, params| async move { client.get_observer_stats(location, params).await },
     )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
 }
 
 /// Execute observer statistics command

@@ -60,10 +60,10 @@ pub async fn handle_location_processing(
         max_workers,
         |client, location, params| async move { client.get_observation_histogram(location, params).await },
     )
-    .await
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
 }
 
 /// Execute location statistics command

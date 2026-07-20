@@ -29,14 +29,29 @@ impl RequestHandler {
         Self { client }
     }
 
+    /// Build query string from HashMap
+    fn build_query_string(params: &HashMap<String, String>) -> String {
+        let pairs: Vec<String> = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect();
+        pairs.join("&")
+    }
+
     async fn get_data(&self, endpoint: &str, params: &HashMap<String, String>) -> Result<Value> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Accept", "application/json".parse().unwrap());
 
+        // Build URL with query string manually
+        let url = if params.is_empty() {
+            endpoint.to_string()
+        } else {
+            format!("{}?{}", endpoint, Self::build_query_string(params))
+        };
+
         let response = self
             .client
-            .get(endpoint)
-            .query(params)
+            .get(&url)
             .headers(headers)
             .send()
             .await?;
