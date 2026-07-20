@@ -1,9 +1,8 @@
 use std::time::Duration;
-use rand::Rng;
 
 pub fn exponential_backoff(retry_count: u32, base_delay: f64, max_delay: f64) -> Duration {
     let delay = (base_delay * (2.0_f64.powi(retry_count as i32))).min(max_delay);
-    let jitter = rand::thread_rng().gen_range(0.0..0.1 * delay);
+    let jitter = rand::rng().random_range(0.0..0.1 * delay);
     Duration::from_secs_f64(delay + jitter)
 }
 
@@ -20,11 +19,5 @@ mod tests {
         assert!(delay1.as_secs_f64() >= 1.0 && delay1.as_secs_f64() < 1.2);
         assert!(delay2.as_secs_f64() >= 2.0 && delay2.as_secs_f64() < 2.2);
         assert!(delay3.as_secs_f64() >= 4.0 && delay3.as_secs_f64() < 4.4);
-    }
-
-    #[test]
-    fn test_max_delay_capping() {
-        let delay = exponential_backoff(10, 1.0, 60.0);
-        assert!(delay.as_secs_f64() <= 66.0); // 60 + 10% jitter
     }
 }

@@ -1,24 +1,26 @@
 //! iNaturalist API Client Library
 //!
-//! A comprehensive Rust client for the iNaturalist API with macro-generated endpoints,
-//! rate limiting, retry logic, and parallel processing capabilities.
+//! A Rust client for interacting with the iNaturalist API with rate limiting,
+//! retry logic, parallel processing, and auto-pagination capabilities.
 
-pub mod client;
-pub mod models;
 pub mod api;
-pub mod utils;
-pub mod error;
 pub mod cli;
-pub mod macros;
-pub mod params;
-pub mod endpoints;
+pub mod client;
+pub mod error;
+pub mod models;
+pub mod utils;
 
 // Re-export main types for easier use
 pub use client::INaturalistClient;
-pub use models::stats::{LocationStats, ObserverStats, SpeciesStats};
-pub use models::response::*;
 pub use error::{ClientError, Result};
-pub use params::common::*;
+pub use models::{
+    ObservationHistogramStats, ObservationObserverStats, ObservationSpeciesStats,
+    ObservationIdentifierStats, Observation, ObservationSearchParams,
+    Identification, IdentificationSearchParams,
+    Taxon, TaxonSuggestion, Place, PlaceSearchParams,
+    Project, ProjectSearchParams, User, SearchResult, SearchParams,
+    ControlledTerm,
+};
 
 // Re-export commonly used types
 pub use std::collections::HashMap;

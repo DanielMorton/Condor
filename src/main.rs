@@ -1,6 +1,7 @@
 use clap::Parser;
 use log::info;
-use inaturalist_client::{INaturalistClient, ClientError, cli::{Cli, execute_command}};
+use condor::cli::{Cli, execute_command};
+use condor::{ClientError, INaturalistClient};
 
 #[tokio::main]
 async fn main() -> Result<(), ClientError> {
@@ -19,8 +20,12 @@ async fn main() -> Result<(), ClientError> {
 
     // Create client with specified rate limit
     let client = INaturalistClient::new(cli.rate_limit)?;
-    info!("Created iNaturalist client with rate limit: {} req/s", cli.rate_limit);
+    info!(
+        "Created iNaturalist client with rate limit: {} req/s",
+        cli.rate_limit
+    );
 
-    // Execute the command
-    execute_command(&client, cli.command, cli.format).await
+    let output_path = cli.output.as_deref();
+    execute_command(&client, cli.command, &cli.format, output_path).await?;
+    Ok(())
 }

@@ -1,13 +1,23 @@
-use std::collections::HashMap;
+use log::{error, info};
 use reqwest::Client;
 use serde::de::DeserializeOwned;
+use serde_json::Value;
+use std::collections::HashMap;
 use tokio::time::sleep;
-use log::{info, error};
 
-use crate::client::rate_limiter::RateLimiter;
 use crate::api::endpoints::Endpoints;
+use crate::client::rate_limiter::RateLimiter;
 use crate::error::{ClientError, Result};
 use crate::utils::backoff::exponential_backoff;
+
+/// Paginated API response wrapper
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct ApiResponse<T> {
+    pub total_results: Option<usize>,
+    pub page: Option<usize>,
+    pub per_page: Option<usize>,
+    pub results: Vec<T>,
+}
 
 #[derive(Debug, Clone)]
 pub struct RequestHandler {
@@ -19,84 +29,114 @@ impl RequestHandler {
         Self { client }
     }
 
-    /// Generic GET request with automatic deserialization
-    pub async fn get_with_params<T: DeserializeOwned>(
-        &self,
-        endpoint: &str,
-        params: &HashMap<String, String>,
-        rate_limiter: &RateLimiter,
-    ) -> Result<T> {
-        let url = Endpoints::full_url(endpoint);
-        self.get_with_retry(&url, params, rate_limiter, 5).await
-    }
-
-    async fn get_data<T: DeserializeOwned>(
-        &self,
-        url: &str,
-        params: &HashMap<String, String>,
-    ) -> Result<T> {
+    async fn get_data(&self, endpoint: &str, params: &HashMap<String, String>) -> Result<Value> {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Accept", "application/json".parse().unwrap());
 
-        let response = self.client
-            .get(url)
+        let response = self
+            .client
+            .get(endpoint)
             .query(params)
             .headers(headers)
             .send()
             .await?;
 
         if response.status().is_success() {
-            let data: T = response.json().await?;
-            Ok(data)
+            let json: Value = response.json().await?;
+            Ok(json)
         } else if response.status() == 429 {
             Err(ClientError::RateLimit)
+        } else if response.status() == 404 {
+            Err(ClientError::NotFound(format!("Endpoint returned 404: {}", endpoint)))
         } else {
-            Err(ClientError::InvalidResponse(format!("HTTP error: {}", response.status())))
+            Err(ClientError::InvalidResponse(format!(
+                "HTTP error: {}",
+                response.status()
+            )))
         }
     }
 
-    async fn get_with_retry<T: DeserializeOwned>(
+    async fn get_data_with_retry(
         &self,
-        url: &str,
+        endpoint: &str,
         params: &HashMap<String, String>,
         rate_limiter: &RateLimiter,
         max_retries: u32,
-    ) -> Result<T> {
+    ) -> Result<Value> {
         let mut retry_count = 0;
 
         loop {
             rate_limiter.wait().await;
 
-            match self.get_data(url, params).await {
+            match self.get_data(endpoint, params).await {
                 Ok(data) => return Ok(data),
                 Err(ClientError::RateLimit) => {
                     retry_count += 1;
                     if retry_count > max_retries {
-                        error!("Max retries exceeded for URL: {}", url);
+                        error!("Max retries exceeded for endpoint: {endpoint}");
                         return Err(ClientError::RateLimit);
                     }
 
                     let delay = exponential_backoff(retry_count, 1.0, 60.0);
-                    info!("Rate limit hit for URL {}. Retrying in {:.2?}...", url, delay);
+                    info!("Rate limit hit for endpoint {endpoint}. Retrying in {delay:.2?}...");
                     sleep(delay).await;
                 }
                 Err(e) => {
-                    error!("Error for URL {}: {}", url, e);
+                    error!("Error for endpoint {endpoint}: {e}");
                     return Err(e);
                 }
             }
         }
     }
 
-    /// Legacy compatibility method
+    /// Generic GET that deserializes results directly
+    pub async fn get<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        params: &HashMap<String, String>,
+        rate_limiter: &RateLimiter,
+    ) -> Result<ApiResponse<T>> {
+        let json = self.get_data_with_retry(endpoint, params, rate_limiter, 5).await?;
+
+        let response: ApiResponse<T> = serde_json::from_value(json)
+            .map_err(|e| ClientError::Json(e))?;
+
+        Ok(response)
+    }
+
+    /// Get single resource by ID
+    pub async fn get_by_id<T: DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        id: impl std::fmt::Display,
+        params: &HashMap<String, String>,
+        rate_limiter: &RateLimiter,
+    ) -> Result<T> {
+        let url = Endpoints::with_id(endpoint, id);
+        let full_url = Endpoints::url(&url);
+        let json = self.get_data_with_retry(&full_url, params, rate_limiter, 5).await?;
+
+        // iNaturalist returns { "total_results": 1, "results": [obj] } for single gets
+        // OR { "id": ..., ... } directly — handle both
+        if let Some(results) = json.get("results").and_then(|r| r.as_array()) {
+            if let Some(first) = results.first() {
+                return serde_json::from_value(first.clone())
+                    .map_err(|e| ClientError::Json(e));
+            }
+        }
+
+        serde_json::from_value(json)
+            .map_err(|e| ClientError::Json(e))
+    }
+
     pub async fn get_stats(
         &self,
         endpoint_tag: &str,
-        location: Option<&str>,
+        location: Option<u32>,
         extra_params: HashMap<String, String>,
         rate_limiter: &RateLimiter,
-    ) -> Result<serde_json::Value> {
-        let endpoint = Endpoints::full_url(endpoint_tag);
+    ) -> Result<Value> {
+        let endpoint = Endpoints::url(endpoint_tag);
         let mut params = HashMap::new();
         params.insert("verifiable".to_string(), "true".to_string());
 
@@ -108,6 +148,25 @@ impl RequestHandler {
             params.insert(key, value);
         }
 
-        self.get_with_retry(&endpoint, &params, rate_limiter, 5).await
+        self.get_data_with_retry(&endpoint, &params, rate_limiter, 5)
+            .await
+    }
+
+    pub async fn get_taxa(
+        &self,
+        taxon_id: i64,
+        extra_params: HashMap<String, String>,
+        rate_limiter: &RateLimiter,
+    ) -> Result<Value> {
+        let endpoint = Endpoints::url(Endpoints::TAXA);
+        let mut params = HashMap::new();
+        params.insert("taxon_id".to_string(), taxon_id.to_string());
+
+        for (key, value) in extra_params {
+            params.insert(key, value);
+        }
+
+        self.get_data_with_retry(&endpoint, &params, rate_limiter, 5)
+            .await
     }
 }

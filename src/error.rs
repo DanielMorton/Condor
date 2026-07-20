@@ -23,14 +23,35 @@ pub enum ClientError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("CSV error: {0}")]
+    Csv(#[from] csv::Error),
+
     #[error("Task join error: {0}")]
     Join(#[from] tokio::task::JoinError),
 
-    #[error("Validation error: {0}")]
-    Validation(String),
+    #[error("Not found: {0}")]
+    NotFound(String),
+
+    #[error("Pagination error: {0}")]
+    PaginationError(String),
+
+    #[error("Invalid parameter: {0}")]
+    InvalidParameter(String),
 
     #[error("Other error: {0}")]
     Other(String),
+}
+
+impl From<String> for ClientError {
+    fn from(msg: String) -> Self {
+        ClientError::Other(msg)
+    }
+}
+
+impl From<&str> for ClientError {
+    fn from(msg: &str) -> Self {
+        ClientError::Other(msg.to_string())
+    }
 }
 
 pub type Result<T> = std::result::Result<T, ClientError>;
