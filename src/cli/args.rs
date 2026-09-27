@@ -186,6 +186,44 @@ pub enum Commands {
         #[arg(short = 'p', long = "param", value_parser = parse_key_val)]
         params: Vec<(String, String)>,
     },
+
+    /// Generic GET request to any iNaturalist API endpoint
+    Get {
+        /// API endpoint path (e.g., "observations", "taxa/123", "places/nearby")
+        #[arg(short, long)]
+        path: String,
+
+        /// Additional query parameters (key=value format)
+        #[arg(long = "param", value_parser = parse_key_val)]
+        params: Vec<(String, String)>,
+    },
+
+    /// Batch generic GET requests to any iNaturalist API endpoint
+    BatchGet {
+        /// Comma-separated list of endpoint paths (e.g., "observations,taxa,places")
+        #[arg(short, long, value_delimiter = ',')]
+        paths: Vec<String>,
+
+        /// Maximum number of parallel workers
+        #[arg(short = 'w', long, default_value = "4")]
+        max_workers: usize,
+
+        /// Additional query parameters (key=value format) - applied to all paths
+        #[arg(long = "param", value_parser = parse_key_val)]
+        params: Vec<(String, String)>,
+    },
+
+    /// Batch generic GET requests with individual parameters for each path
+    BatchGetWithParams {
+        /// Comma-separated list of endpoint paths with optional parameters
+        /// Format: "path1?key1=value1&key2=value2,path2?key=value"
+        #[arg(long, value_delimiter = ',')]
+        path_params: Vec<String>,
+
+        /// Maximum number of parallel workers
+        #[arg(short = 'w', long, default_value = "4")]
+        max_workers: usize,
+    },
 }
 
 #[derive(ValueEnum, Clone)]

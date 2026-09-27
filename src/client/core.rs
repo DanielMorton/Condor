@@ -10,6 +10,7 @@ use crate::error::{ClientError, Result};
 
 // Import all the builder structs from endpoints
 use crate::endpoints::definitions::*;
+use crate::endpoints::GenericGetBuilder;
 
 #[derive(Debug, Clone)]
 pub struct INaturalistClient {
@@ -95,6 +96,16 @@ impl INaturalistClient {
     // Search endpoint
     pub fn search(&self) -> SearchBuilder {
         SearchBuilder::new(self.clone())
+    }
+
+    // Generic GET endpoint for any iNaturalist API path
+    pub fn get(&self, path: impl Into<String>) -> GenericGetBuilder {
+        GenericGetBuilder::new(self.clone()).path(path)
+    }
+
+    /// Generic GET with path and parameters
+    pub fn get_with_params(&self, path: impl Into<String>, params: std::collections::HashMap<String, String>) -> GenericGetBuilder {
+        GenericGetBuilder::new(self.clone()).path(path).with_params(params)
     }
 
     // Batch processing methods
@@ -188,6 +199,66 @@ impl INaturalistClient {
             },
             Some(max_workers),
         ).await
+    }
+
+    // Generic batch processing for any GET endpoint
+    pub async fn batch_get(
+        &self,
+        paths: Vec<String>,
+        max_workers: usize,
+    ) -> Vec<serde_json::Value> {
+        self.process_locations_parallel(
+            paths,
+            {
+                let client = self.clone();
+                move |path| {
+                    let client = client.clone();
+                    async move {
+                        client.get(&path).fetch().await
+                    }
+                }
+            },
+            Some(max_workers),
+        ).await
+    }
+
+    // Generic batch processing with parameters for any GET endpoint
+    pub async fn batch_get_with_params(
+        &self,
+        path_params: Vec<(String, std::collections::HashMap<String, String>)>,
+        max_workers: usize,
+    ) -> Vec<serde_json::Value> {
+        use std::sync::Arc;
+        use futures::future::join_all;
+
+        let max_workers = std::cmp::min(max_workers, path_params.len());
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(max_workers));
+
+        let tasks: Vec<_> = path_params.into_iter().map(|(path, params)| {
+            let semaphore = semaphore.clone();
+            let client = self.clone();
+
+            tokio::spawn(async move {
+                let _permit = semaphore.acquire().await.unwrap();
+                client.get(path).with_params(params).fetch().await
+            })
+        }).collect();
+
+        let results = join_all(tasks).await;
+
+        results.into_iter()
+            .filter_map(|result| match result {
+                Ok(Ok(data)) => Some(data),
+                Ok(Err(e)) => {
+                    error!("Task failed: {}", e);
+                    None
+                }
+                Err(e) => {
+                    error!("Task panicked: {}", e);
+                    None
+                }
+            })
+            .collect()
     }
 
     // Keep the existing parallel processing method
