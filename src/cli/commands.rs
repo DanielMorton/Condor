@@ -236,6 +236,104 @@ fn parse_path_with_params(input: &str) -> (String, std::collections::HashMap<Str
     (path.to_string(), params)
 }
 
+/// Recursively flatten JSON into key-value pairs with dot notation
+/// Arrays are kept as JSON strings to prevent column explosion
+fn flatten_json_value(
+    prefix: &str,
+    value: &serde_json::Value,
+    result: &mut std::collections::HashMap<String, String>,
+    depth: usize,
+) {
+    const MAX_DEPTH: usize = 5;
+    
+    if depth > MAX_DEPTH {
+        // At max depth, just store the JSON as a string
+        result.insert(prefix.to_string(), value.to_string());
+        return;
+    }
+    
+    match value {
+        serde_json::Value::Object(map) => {
+            if map.is_empty() {
+                result.insert(prefix.to_string(), "{}".to_string());
+            } else {
+                for (key, val) in map {
+                    let new_prefix = if prefix.is_empty() {
+                        key.clone()
+                    } else {
+                        format!("{}.{}", prefix, key)
+                    };
+                    flatten_json_value(&new_prefix, val, result, depth + 1);
+                }
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            // For small arrays of primitives, expand them as comma-separated values
+            // For complex arrays, store as JSON string
+            if arr.len() <= 5 && arr.iter().all(|v| matches!(v, serde_json::Value::String(_) | serde_json::Value::Number(_) | serde_json::Value::Bool(_))) {
+                let values: Vec<String> = arr.iter().map(|v| match v {
+                    serde_json::Value::String(s) => s.clone(),
+                    serde_json::Value::Number(n) => n.to_string(),
+                    serde_json::Value::Bool(b) => b.to_string(),
+                    _ => String::new(),
+                }).collect();
+                result.insert(prefix.to_string(), values.join(","));
+            } else {
+                // Store complex arrays as JSON strings
+                result.insert(prefix.to_string(), serde_json::to_string(arr).unwrap());
+            }
+        }
+        serde_json::Value::String(s) => {
+            result.insert(prefix.to_string(), s.clone());
+        }
+        serde_json::Value::Number(n) => {
+            result.insert(prefix.to_string(), n.to_string());
+        }
+        serde_json::Value::Bool(b) => {
+            result.insert(prefix.to_string(), b.to_string());
+        }
+        serde_json::Value::Null => {
+            result.insert(prefix.to_string(), "".to_string());
+        }
+    }
+}
+
+/// Extract headers from a collection of flat maps
+fn get_headers(rows: &[std::collections::HashMap<String, String>]) -> Vec<String> {
+    use std::collections::HashSet;
+    
+    let mut headers = HashSet::new();
+    for row in rows {
+        for key in row.keys() {
+            headers.insert(key.clone());
+        }
+    }
+    let mut sorted: Vec<String> = headers.into_iter().collect();
+    sorted.sort();
+    sorted
+}
+
+/// Convert rows to CSV format
+fn rows_to_csv(rows: &[std::collections::HashMap<String, String>], headers: &[String]) -> String {
+    use csv::WriterBuilder;
+    
+    let mut wtr = WriterBuilder::new().from_writer(vec![]);
+    
+    // Write header
+    wtr.write_record(headers).unwrap();
+    
+    // Write each row
+    for row in rows {
+        let mut record: Vec<String> = Vec::new();
+        for header in headers {
+            record.push(row.get(header).cloned().unwrap_or_default());
+        }
+        wtr.write_record(&record).unwrap();
+    }
+    
+    String::from_utf8(wtr.into_inner().unwrap()).unwrap()
+}
+
 fn print_output<T: serde::Serialize>(data: &T, format: OutputFormat) {
     match format {
         OutputFormat::Json => {
@@ -246,8 +344,36 @@ fn print_output<T: serde::Serialize>(data: &T, format: OutputFormat) {
             println!("{}", serde_json::to_string_pretty(data).unwrap());
         }
         OutputFormat::Csv => {
-            // CSV output
-            println!("{}", serde_json::to_string(data).unwrap());
+            // Convert to JSON value first
+            let json_value = serde_json::to_value(data).unwrap();
+            
+            // Extract the results array from ApiResponse wrapper
+            let results: Vec<&serde_json::Value> = match &json_value {
+                serde_json::Value::Object(map) if map.contains_key("results") => {
+                    if let Some(serde_json::Value::Array(arr)) = map.get("results") {
+                        arr.iter().collect()
+                    } else {
+                        vec![&json_value]
+                    }
+                }
+                serde_json::Value::Array(arr) => {
+                    arr.iter().collect()
+                }
+                _ => {
+                    vec![&json_value]
+                }
+            };
+            
+            // Convert each result item to a row, flattening nested objects
+            let mut rows: Vec<std::collections::HashMap<String, String>> = Vec::new();
+            for result in results {
+                let mut flat_row = std::collections::HashMap::new();
+                flatten_json_value("", result, &mut flat_row, 0);
+                rows.push(flat_row);
+            }
+            let headers = get_headers(&rows);
+            let csv = rows_to_csv(&rows, &headers);
+            println!("{}", csv);
         }
     }
 }
