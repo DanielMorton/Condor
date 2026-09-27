@@ -194,11 +194,11 @@ pub enum Commands {
     /// Generic GET request to any iNaturalist API endpoint
     Get {
         /// API endpoint path (e.g., "observations", "taxa/123", "places/nearby")
-        #[arg(short, long)]
+        #[arg(long)]
         path: String,
 
         /// Additional query parameters (key=value format)
-        #[arg(long = "param", value_parser = parse_key_val)]
+        #[arg(short = 'p', long = "param", value_parser = parse_key_val)]
         params: Vec<(String, String)>,
     },
 
