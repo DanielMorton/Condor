@@ -1,9 +1,9 @@
 use std::time::Duration;
-use rand::Rng;
+use rand::RngExt;
 
 pub fn exponential_backoff(retry_count: u32, base_delay: f64, max_delay: f64) -> Duration {
     let delay = (base_delay * (2.0_f64.powi(retry_count as i32))).min(max_delay);
-    let jitter = rand::thread_rng().gen_range(0.0..0.1 * delay);
+    let jitter = rand::rng().random_range(0.0..0.1 * delay);
     Duration::from_secs_f64(delay + jitter)
 }
 
