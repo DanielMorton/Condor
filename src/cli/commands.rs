@@ -129,7 +129,14 @@ pub async fn execute_command(
             print_output(&result, format);
         }
 
-        Commands::Batch { locations, stat_type, max_workers, params: _ } => {
+        Commands::Batch { locations_file, location_column, stat_type, max_workers, params: _ } => {
+            info!("Reading locations from CSV file: {}", locations_file);
+            
+            // Read locations from CSV file
+            let locations = read_locations_from_csv(&locations_file, &location_column)
+                .await
+                .map_err(|e| ClientError::Other(format!("Failed to read locations: {}", e)))?;
+            
             info!("Processing {} locations in parallel with {} workers", locations.len(), max_workers);
 
             match stat_type {
@@ -166,7 +173,14 @@ pub async fn execute_command(
             print_output(&result, format);
         }
 
-        Commands::BatchGet { paths, max_workers, params } => {
+        Commands::BatchGet { paths_file, path_column, max_workers, params } => {
+            info!("Reading paths from CSV file: {}", paths_file);
+            
+            // Read paths from CSV file
+            let paths = read_paths_from_csv(&paths_file, &path_column)
+                .await
+                .map_err(|e| ClientError::Other(format!("Failed to read paths: {}", e)))?;
+            
             info!("Processing {} paths in parallel with {} workers", paths.len(), max_workers);
 
             // Convert params to HashMap
@@ -186,14 +200,15 @@ pub async fn execute_command(
             }
         }
 
-        Commands::BatchGetWithParams { path_params, max_workers } => {
-            info!("Processing {} path-param combinations in parallel with {} workers", path_params.len(), max_workers);
-
-            // Parse path_params into (path, params) tuples
-            let parsed: Vec<(String, std::collections::HashMap<String, String>)> = path_params
-                .into_iter()
-                .map(|pp| parse_path_with_params(&pp))
-                .collect();
+        Commands::BatchGetWithParams { paths_file, path_column, max_workers } => {
+            info!("Reading paths with params from CSV file: {}", paths_file);
+            
+            // Read path-params from CSV file
+            let parsed = read_path_params_from_csv(&paths_file, &path_column)
+                .await
+                .map_err(|e| ClientError::Other(format!("Failed to read path-params: {}", e)))?;
+            
+            info!("Processing {} path-param combinations in parallel with {} workers", parsed.len(), max_workers);
 
             let results = client.batch_get_with_params(parsed, max_workers).await;
             println!("Processed {} path-param combinations successfully", results.len());
@@ -209,32 +224,7 @@ pub async fn execute_command(
     Ok(())
 }
 
-/// Parse a path with query parameters (e.g., "path?key1=value1&key2=value2")
-fn parse_path_with_params(input: &str) -> (String, std::collections::HashMap<String, String>) {
-    use std::collections::HashMap;
-    
-    let (path, query) = if let Some(pos) = input.find('?') {
-        (&input[..pos], &input[pos+1..])
-    } else {
-        (input, "")
-    };
-    
-    let mut params = HashMap::new();
-    
-    if !query.is_empty() {
-        for pair in query.split('&') {
-            if let Some(eq_pos) = pair.find('=') {
-                let key = &pair[..eq_pos];
-                let value = &pair[eq_pos+1..];
-                params.insert(key.to_string(), value.to_string());
-            } else if !pair.is_empty() {
-                params.insert(pair.to_string(), String::new());
-            }
-        }
-    }
-    
-    (path.to_string(), params)
-}
+
 
 /// Recursively flatten JSON into key-value pairs with dot notation
 /// Arrays are kept as JSON strings to prevent column explosion
@@ -332,6 +322,100 @@ fn rows_to_csv(rows: &[std::collections::HashMap<String, String>], headers: &[St
     }
     
     String::from_utf8(wtr.into_inner().unwrap()).unwrap()
+}
+
+/// Read location IDs (place_ids) from a CSV file
+async fn read_locations_from_csv(file_path: &str, column_name: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut rdr = csv::Reader::from_path(file_path)?;
+    
+    // Get header and find column index
+    let headers = rdr.headers()?.clone();
+    let col_index = headers.iter()
+        .position(|h| h.trim() == column_name)
+        .ok_or_else(|| format!("Column '{}' not found in CSV. Available columns: {:?}", column_name, headers))?;
+    
+    let mut locations = Vec::new();
+    for result in rdr.records() {
+        let record = result?;
+        if col_index < record.len() {
+            let value = record[col_index].trim().to_string();
+            if !value.is_empty() {
+                locations.push(value);
+            }
+        }
+    }
+    
+    Ok(locations)
+}
+
+/// Read paths from a CSV file
+async fn read_paths_from_csv(file_path: &str, column_name: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut rdr = csv::Reader::from_path(file_path)?;
+    
+    // Get header and find column index
+    let headers = rdr.headers()?.clone();
+    let col_index = headers.iter()
+        .position(|h| h.trim() == column_name)
+        .ok_or_else(|| format!("Column '{}' not found in CSV. Available columns: {:?}", column_name, headers))?;
+    
+    let mut paths = Vec::new();
+    for result in rdr.records() {
+        let record = result?;
+        if col_index < record.len() {
+            let value = record[col_index].trim().to_string();
+            if !value.is_empty() {
+                paths.push(value);
+            }
+        }
+    }
+    
+    Ok(paths)
+}
+
+/// Read path-params from a CSV file
+/// First column is path, remaining columns are treated as param=value pairs
+async fn read_path_params_from_csv(file_path: &str, path_column: &str) -> Result<Vec<(String, std::collections::HashMap<String, String>)>, Box<dyn std::error::Error>> {
+    let mut rdr = csv::Reader::from_path(file_path)?;
+    
+    // Get header and find path column index
+    let headers = rdr.headers()?.clone();
+    let path_col_index = headers.iter()
+        .position(|h| h.trim() == path_column)
+        .ok_or_else(|| format!("Path column '{}' not found in CSV. Available columns: {:?}", path_column, headers))?;
+    
+    let mut results = Vec::new();
+    for result in rdr.records() {
+        let record = result?;
+        if path_col_index >= record.len() {
+            continue;
+        }
+        
+        let path = record[path_col_index].trim().to_string();
+        if path.is_empty() {
+            continue;
+        }
+        
+        // Parse remaining columns as param=value pairs
+        use std::collections::HashMap;
+        let mut params = HashMap::new();
+        for (i, value) in record.iter().enumerate() {
+            if i == path_col_index {
+                continue;
+            }
+            // Try to parse as key=value
+            if let Some(eq_pos) = value.find('=') {
+                let key = value[..eq_pos].trim().to_string();
+                let val = value[eq_pos+1..].trim().to_string();
+                if !key.is_empty() {
+                    params.insert(key, val);
+                }
+            }
+        }
+        
+        results.push((path, params));
+    }
+    
+    Ok(results)
 }
 
 fn print_output<T: serde::Serialize>(data: &T, format: OutputFormat) {

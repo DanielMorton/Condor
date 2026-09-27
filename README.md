@@ -5,11 +5,12 @@ A comprehensive Rust CLI tool for interacting with the iNaturalist API. Supports
 ## Features
 
 - **Generic GET Requests**: Query any iNaturalist API endpoint
-- **Batch Processing**: Process multiple locations/endpoints in parallel
+- **Batch Processing**: Process multiple locations (place_ids) from CSV files in parallel
 - **Rate Limiting**: Configurable request rate limiting
 - **Retry Logic**: Automatic retry with exponential backoff on rate limits
 - **Multiple Output Formats**: JSON (pretty or compact), CSV
 - **Predefined Endpoints**: Convenient access to common endpoints (observations, taxa, places, etc.)
+- **CSV Input**: Read location IDs (place_ids) and paths from CSV files for batch processing
 
 ## Installation
 
@@ -59,15 +60,32 @@ inaturalist-cli --format csv get --path "places/autocomplete" --param "q=San Fra
 
 #### Batch GET Requests
 
-Process multiple endpoints in parallel:
+Process multiple endpoints in parallel (reads paths from CSV):
 
 ```bash
-# Batch with same parameters for all paths
-inaturalist-cli batch-get --paths "places/1,places/2,places/3" --max-workers 4
+# Batch with same parameters for all paths (reads from CSV file)
+inaturalist-cli batch-get --paths-file paths.csv --max-workers 4
 
-# Batch with individual parameters per path
-inaturalist-cli batch-get-with-params --path-params "observations?place_id=1&per_page=5,taxa/123?per_page=3" --max-workers 2
+# Batch with individual parameters per path (reads from CSV file)
+inaturalist-cli batch-get-with-params --paths-file paths_with_params.csv --max-workers 2
 ```
+
+**CSV File Format for paths:**
+```csv
+path
+places/1
+places/2
+places/3
+```
+
+**CSV File Format for paths with params:**
+```csv
+path,place_id,per_page
+observations,,5
+observations,,10
+places,1,
+```
+Note: Additional columns are treated as key=value parameters. For explicit parameters, use the `--param` flag with `batch-get`.
 
 #### Predefined Endpoint Commands
 
@@ -106,11 +124,29 @@ inaturalist-cli projects-search --query "butterfly" --per-page 10
 #### Batch Processing for Predefined Endpoints
 
 ```bash
-# Process multiple locations for histogram
-inaturalist-cli batch --locations "1,2,3" --stat-type histogram --max-workers 4
+# Process multiple locations for histogram (reads place_ids from CSV)
+inaturalist-cli batch --locations-file locations.csv --stat-type histogram --max-workers 4
 
 # Process multiple locations for species counts
-inaturalist-cli batch --locations "1,2,3" --stat-type species --max-workers 4
+inaturalist-cli batch --locations-file locations.csv --stat-type species --max-workers 4
+
+# Specify which column contains place_ids (default: place_id)
+inaturalist-cli batch --locations-file locations.csv --location-column id --stat-type histogram
+```
+
+**CSV File Format for locations:**
+```csv
+place_id,name
+1,San Francisco
+2,New York
+3,Los Angeles
+```
+Or simply:
+```csv
+place_id
+1
+2
+3
 ```
 
 ## Output Formats
@@ -182,9 +218,19 @@ inaturalist-cli --format csv get --path "observations" \
 
 ### Example 2: Batch process multiple locations
 
+Create a CSV file `locations.csv`:
+```csv
+place_id
+1
+2
+3
+```
+
+Then run:
 ```bash
-inaturalist-cli batch-get \
-  --paths "observations?place_id=1&per_page=10,observations?place_id=2&per_page=10" \
+inaturalist-cli batch \
+  --locations-file locations.csv \
+  --stat-type histogram \
   --max-workers 2 \
   --format csv
 ```
@@ -197,8 +243,19 @@ inaturalist-cli --format csv taxa-search --query "Quercus" --per-page 50 > oak_s
 
 ### Example 4: Get species counts for multiple locations in parallel
 
+Create a CSV file `my_locations.csv`:
+```csv
+place_id
+1
+2
+3
+4
+5
+```
+
+Then run:
 ```bash
-inaturalist-cli batch --locations "1,2,3,4,5" --stat-type species --max-workers 5
+inaturalist-cli batch --locations-file my_locations.csv --stat-type species --max-workers 5
 ```
 
 ## Rate Limiting

@@ -170,9 +170,13 @@ pub enum Commands {
 
     /// Process multiple locations in parallel
     Batch {
-        /// Comma-separated list of location IDs
-        #[arg(short, long, value_delimiter = ',')]
-        locations: Vec<String>,
+        /// CSV file containing location IDs (place_id) - one per line or column
+        #[arg(short, long)]
+        locations_file: String,
+
+        /// Column name in CSV file containing place_ids (default: first column)
+        #[arg(long, default_value = "place_id")]
+        location_column: String,
 
         /// Type of statistics to gather
         #[arg(short, long, value_enum)]
@@ -200,9 +204,13 @@ pub enum Commands {
 
     /// Batch generic GET requests to any iNaturalist API endpoint
     BatchGet {
-        /// Comma-separated list of endpoint paths (e.g., "observations,taxa,places")
-        #[arg(short, long, value_delimiter = ',')]
-        paths: Vec<String>,
+        /// CSV file containing endpoint paths - one per line or column
+        #[arg(short, long)]
+        paths_file: String,
+
+        /// Column name in CSV file containing paths (default: first column)
+        #[arg(long, default_value = "path")]
+        path_column: String,
 
         /// Maximum number of parallel workers
         #[arg(short = 'w', long, default_value = "4")]
@@ -215,10 +223,14 @@ pub enum Commands {
 
     /// Batch generic GET requests with individual parameters for each path
     BatchGetWithParams {
-        /// Comma-separated list of endpoint paths with optional parameters
-        /// Format: "path1?key1=value1&key2=value2,path2?key=value"
-        #[arg(long, value_delimiter = ',')]
-        path_params: Vec<String>,
+        /// CSV file containing endpoint paths with parameters
+        /// Can have multiple columns: path, param1, param2, etc.
+        #[arg(long)]
+        paths_file: String,
+
+        /// Column name in CSV file containing paths (default: "path")
+        #[arg(long, default_value = "path")]
+        path_column: String,
 
         /// Maximum number of parallel workers
         #[arg(short = 'w', long, default_value = "4")]
